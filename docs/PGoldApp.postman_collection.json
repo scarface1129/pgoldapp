@@ -1,0 +1,554 @@
+{
+	"info": {
+		"_postman_id": "pgoldapp-api-collection",
+		"name": "PGoldApp - Cryptocurrency Trading API",
+		"description": "REST API for a cryptocurrency trading platform where users can buy and sell BTC, ETH, and USDT using Nigerian Naira (NGN).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api/v1"
+		},
+		{
+			"key": "token",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Register a new user account. Returns an authentication token."
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.token) {",
+									"    pm.collectionVariables.set('token', jsonData.data.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login with existing credentials. The token is automatically saved to collection variables."
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout"]
+						},
+						"description": "Logout and revoke the current access token."
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/profile",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "profile"]
+						},
+						"description": "Get the authenticated user's profile and wallet information."
+					}
+				}
+			]
+		},
+		{
+			"name": "Wallet",
+			"item": [
+				{
+					"name": "Get Wallet",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/wallet",
+							"host": ["{{base_url}}"],
+							"path": ["wallet"]
+						},
+						"description": "Get the user's wallet details including balance."
+					}
+				},
+				{
+					"name": "Deposit",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 100000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/wallet/deposit",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "deposit"]
+						},
+						"description": "Deposit funds into the wallet (for testing purposes). Amount in NGN."
+					}
+				},
+				{
+					"name": "Withdraw",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 50000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/wallet/withdraw",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "withdraw"]
+						},
+						"description": "Withdraw funds from the wallet (for testing purposes). Amount in NGN."
+					}
+				},
+				{
+					"name": "Get Transactions",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/wallet/transactions?per_page=15",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "transactions"],
+							"query": [
+								{"key": "type", "value": "credit", "disabled": true},
+								{"key": "source", "value": "deposit", "disabled": true},
+								{"key": "date_from", "value": "2024-01-01", "disabled": true},
+								{"key": "date_to", "value": "2024-12-31", "disabled": true},
+								{"key": "per_page", "value": "15"}
+							]
+						},
+						"description": "Get wallet transaction history with optional filtering."
+					}
+				}
+			]
+		},
+		{
+			"name": "Crypto Prices",
+			"item": [
+				{
+					"name": "Get All Prices",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/crypto/prices",
+							"host": ["{{base_url}}"],
+							"path": ["crypto", "prices"]
+						},
+						"description": "Get current prices for all supported cryptocurrencies in NGN. No authentication required."
+					}
+				},
+				{
+					"name": "Get BTC Price",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/crypto/prices/BTC",
+							"host": ["{{base_url}}"],
+							"path": ["crypto", "prices", "BTC"]
+						},
+						"description": "Get current Bitcoin price in NGN."
+					}
+				},
+				{
+					"name": "Get ETH Price",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/crypto/prices/ETH",
+							"host": ["{{base_url}}"],
+							"path": ["crypto", "prices", "ETH"]
+						},
+						"description": "Get current Ethereum price in NGN."
+					}
+				},
+				{
+					"name": "Get Supported Cryptos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/crypto/supported",
+							"host": ["{{base_url}}"],
+							"path": ["crypto", "supported"]
+						},
+						"description": "Get list of supported cryptocurrencies."
+					}
+				}
+			]
+		},
+		{
+			"name": "Trading",
+			"item": [
+				{
+					"name": "Get Quote - Buy",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"buy\",\n    \"symbol\": \"BTC\",\n    \"amount\": 100000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/trade/quote",
+							"host": ["{{base_url}}"],
+							"path": ["trade", "quote"]
+						},
+						"description": "Get a price quote for buying crypto. Amount is in NGN."
+					}
+				},
+				{
+					"name": "Get Quote - Sell",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"sell\",\n    \"symbol\": \"BTC\",\n    \"amount\": 0.001\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/trade/quote",
+							"host": ["{{base_url}}"],
+							"path": ["trade", "quote"]
+						},
+						"description": "Get a price quote for selling crypto. Amount is in crypto units."
+					}
+				},
+				{
+					"name": "Buy Crypto",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"symbol\": \"BTC\",\n    \"amount\": 50000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/trade/buy",
+							"host": ["{{base_url}}"],
+							"path": ["trade", "buy"]
+						},
+						"description": "Buy cryptocurrency using NGN from wallet. Amount is in NGN."
+					}
+				},
+				{
+					"name": "Sell Crypto",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"symbol\": \"BTC\",\n    \"amount\": 0.0005\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/trade/sell",
+							"host": ["{{base_url}}"],
+							"path": ["trade", "sell"]
+						},
+						"description": "Sell cryptocurrency and receive NGN in wallet. Amount is in crypto units."
+					}
+				},
+				{
+					"name": "Get Trade History",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/trade/history?per_page=15",
+							"host": ["{{base_url}}"],
+							"path": ["trade", "history"],
+							"query": [
+								{"key": "type", "value": "buy", "disabled": true},
+								{"key": "symbol", "value": "BTC", "disabled": true},
+								{"key": "status", "value": "completed", "disabled": true},
+								{"key": "date_from", "value": "2024-01-01", "disabled": true},
+								{"key": "date_to", "value": "2024-12-31", "disabled": true},
+								{"key": "per_page", "value": "15"}
+							]
+						},
+						"description": "Get trade history with optional filtering."
+					}
+				},
+				{
+					"name": "Get Trade by Reference",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/trade/TRD-YOUR-REFERENCE",
+							"host": ["{{base_url}}"],
+							"path": ["trade", "TRD-YOUR-REFERENCE"]
+						},
+						"description": "Get details of a specific trade by its reference number."
+					}
+				}
+			]
+		},
+		{
+			"name": "Portfolio",
+			"item": [
+				{
+					"name": "Get Holdings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/crypto/holdings",
+							"host": ["{{base_url}}"],
+							"path": ["crypto", "holdings"]
+						},
+						"description": "Get user's cryptocurrency holdings (balances only)."
+					}
+				},
+				{
+					"name": "Get Portfolio",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{token}}"}]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/crypto/portfolio",
+							"host": ["{{base_url}}"],
+							"path": ["crypto", "portfolio"]
+						},
+						"description": "Get user's portfolio with current market values in NGN."
+					}
+				}
+			]
+		}
+	]
+}
