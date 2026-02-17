@@ -1,371 +1,159 @@
-# PGoldApp - Cryptocurrency Trading Platform API
+# PGoldApp
 
-A REST API for a cryptocurrency trading platform where users can buy and sell digital assets (BTC, ETH, USDT) using Nigerian Naira (NGN).
+A crypto trading API I built for buying/selling BTC, ETH, and USDT with Nigerian Naira. Nothing fancy, just a clean REST API that gets the job done.
 
-## Table of Contents
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [System Architecture](#system-architecture)
-- [Setup Instructions](#setup-instructions)
-- [API Documentation](#api-documentation)
-- [Fee Structure](#fee-structure)
-- [CoinGecko Integration](#coingecko-integration)
-- [Running Tests](#running-tests)
-- [Design Decisions](#design-decisions)
-- [Trade-offs & Assumptions](#trade-offs--assumptions)
-- [Time Spent](#time-spent)
+## What it does
 
-## Features
+- User signup/login (Sanctum tokens)
+- Naira wallet - deposit, withdraw, check balance
+- Buy and sell crypto at live rates (pulled from CoinGecko)
+- 1.5% fee on trades
+- Transaction history and portfolio tracking
 
-- **User Authentication**: Secure registration and login with Laravel Sanctum tokens
-- **Wallet Management**: Naira wallet with deposit/withdrawal capabilities
-- **Cryptocurrency Trading**: Buy and sell BTC, ETH, and USDT
-- **Real-time Rates**: Live exchange rates from CoinGecko API
-- **Transaction Tracking**: Complete history of all wallet and trade transactions
-- **Fee System**: Configurable percentage-based fees on trades
-- **Portfolio Management**: View holdings with current market values
+## Tech
 
-## Tech Stack
+- Laravel 12 / PHP 8.2
+- MySQL
+- PHPUnit for tests
 
-- **Framework**: Laravel 12.x
-- **PHP Version**: 8.2+
-- **Database**: MySQL
-- **Authentication**: Laravel Sanctum
-- **HTTP Client**: Guzzle
-- **Testing**: PHPUnit
+## Getting Started
 
-## System Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      API Layer                               │
-│  ┌───────────┐  ┌──────────────┐  ┌───────────────────────┐ │
-│  │   Auth    │  │    Wallet    │  │       Trading         │ │
-│  │Controller │  │  Controller  │  │      Controller       │ │
-│  └─────┬─────┘  └──────┬───────┘  └───────────┬───────────┘ │
-└────────┼───────────────┼──────────────────────┼─────────────┘
-         │               │                      │
-┌────────▼───────────────▼──────────────────────▼─────────────┐
-│                    Service Layer                             │
-│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐ │
-│  │ WalletService  │  │ TradingService │  │CoinGeckoService│ │
-│  └────────┬───────┘  └────────┬───────┘  └────────┬───────┘ │
-└───────────┼───────────────────┼───────────────────┼─────────┘
-            │                   │                   │
-┌───────────▼───────────────────▼───────────┐      │
-│              Data Layer                    │      │
-│  ┌──────┐ ┌────────┐ ┌───────┐ ┌───────┐ │      │
-│  │ User │ │ Wallet │ │ Trade │ │Holding│ │      │
-│  └──────┘ └────────┘ └───────┘ └───────┘ │      │
-│  ┌──────────────────┐ ┌────────────────┐ │      │
-│  │WalletTransaction │ │   FeeSetting   │ │      │
-│  └──────────────────┘ └────────────────┘ │      │
-└──────────────────────────────────────────┘      │
-                                                   │
-                                    ┌──────────────▼──────────┐
-                                    │    CoinGecko API        │
-                                    │   (External Service)    │
-                                    └─────────────────────────┘
-```
-
-### Key Components
-
-1. **Controllers**: Handle HTTP requests and responses
-2. **Services**: Business logic layer
-   - `WalletService`: Wallet operations (deposit, withdraw, balance)
-   - `TradingService`: Trade execution with fee calculation
-   - `CoinGeckoService`: External API integration with caching
-3. **Models**: Data entities with relationships and business methods
-
-## Setup Instructions
-
-### Prerequisites
-- PHP 8.2 or higher
-- Composer
-- MySQL 5.7+ or 8.0
-- XAMPP (or any MySQL server)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd pgoldapp
-   ```
-
-2. **Install dependencies**
-   ```bash
-   composer install
-   ```
-
-3. **Configure environment**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
-
-4. **Update `.env` with your database credentials**
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=pgoldapp
-   DB_USERNAME=root
-   DB_PASSWORD=
-   ```
-
-5. **Create the database**
-   ```sql
-   CREATE DATABASE pgoldapp;
-   ```
-
-6. **Run migrations and seeders**
-   ```bash
-   php artisan migrate
-   php artisan db:seed
-   ```
-
-7. **Start the development server**
-   ```bash
-   php artisan serve
-   ```
-
-The API will be available at `http://localhost:8000`
-
-### Test Users (from seeder)
-| Email | Password | Initial Balance |
-|-------|----------|-----------------|
-| test@example.com | password123 | ₦500,000 |
-| test2@example.com | password123 | ₦0 |
-
-## API Documentation
-
-Full API documentation is available in [docs/API.md](docs/API.md).
-
-### Quick Reference
-
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/api/v1/auth/register` | POST | No | Register new user |
-| `/api/v1/auth/login` | POST | No | Login user |
-| `/api/v1/auth/logout` | POST | Yes | Logout user |
-| `/api/v1/auth/profile` | GET | Yes | Get user profile |
-| `/api/v1/wallet` | GET | Yes | Get wallet details |
-| `/api/v1/wallet/deposit` | POST | Yes | Deposit funds |
-| `/api/v1/wallet/withdraw` | POST | Yes | Withdraw funds |
-| `/api/v1/wallet/transactions` | GET | Yes | Transaction history |
-| `/api/v1/crypto/prices` | GET | No | Get all crypto prices |
-| `/api/v1/crypto/supported` | GET | No | List supported cryptos |
-| `/api/v1/trade/buy` | POST | Yes | Buy cryptocurrency |
-| `/api/v1/trade/sell` | POST | Yes | Sell cryptocurrency |
-| `/api/v1/trade/quote` | POST | Yes | Get trade quote |
-| `/api/v1/trade/history` | GET | Yes | Trade history |
-| `/api/v1/crypto/portfolio` | GET | Yes | Portfolio with values |
-
-### Example: Complete Trading Flow
+You'll need PHP 8.2+, Composer, and MySQL.
 
 ```bash
-# 1. Register
-curl -X POST http://localhost:8000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"John","email":"john@example.com","password":"password123","password_confirmation":"password123"}'
+# clone and install
+git clone <repo-url>
+cd pgoldapp
+composer install
 
-# 2. Login (save the token)
+# setup env
+cp .env.example .env
+php artisan key:generate
+
+# update .env with your DB creds
+# DB_DATABASE=pgoldapp
+# DB_USERNAME=root
+# DB_PASSWORD=
+
+# run migrations
+php artisan migrate
+php artisan db:seed
+
+# start server
+php artisan serve
+```
+
+Should be running at `http://localhost:8000`
+
+### Test accounts
+
+The seeder creates two accounts you can play with:
+
+- `test@example.com` / `password123` (has ₦500k balance)
+- `test2@example.com` / `password123` (empty wallet)
+
+## API Endpoints
+
+Check [docs/API.md](docs/API.md) for the full docs, but here's the gist:
+
+**Auth:**
+- `POST /api/v1/auth/register` - signup
+- `POST /api/v1/auth/login` - login
+- `POST /api/v1/auth/logout` - logout (needs token)
+- `GET /api/v1/auth/profile` - get your profile
+
+**Wallet:**
+- `GET /api/v1/wallet` - check balance
+- `POST /api/v1/wallet/deposit` - add funds
+- `POST /api/v1/wallet/withdraw` - withdraw
+- `GET /api/v1/wallet/transactions` - tx history
+
+**Trading:**
+- `GET /api/v1/crypto/prices` - current prices
+- `GET /api/v1/crypto/supported` - supported coins
+- `POST /api/v1/trade/buy` - buy crypto
+- `POST /api/v1/trade/sell` - sell crypto
+- `POST /api/v1/trade/quote` - get a quote first
+- `GET /api/v1/trade/history` - your trades
+- `GET /api/v1/crypto/portfolio` - holdings + values
+
+### Quick example
+
+```bash
+# login
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"john@example.com","password":"password123"}'
+  -d '{"email":"test@example.com","password":"password123"}'
 
-# 3. Deposit funds
-curl -X POST http://localhost:8000/api/v1/wallet/deposit \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{"amount":100000}'
-
-# 4. Get quote
-curl -X POST http://localhost:8000/api/v1/trade/quote \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"buy","symbol":"BTC","amount":50000}'
-
-# 5. Buy crypto
+# copy the token from response, then buy some BTC
 curl -X POST http://localhost:8000/api/v1/trade/buy \
-  -H "Authorization: Bearer {token}" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{"symbol":"BTC","amount":50000}'
-
-# 6. View portfolio
-curl http://localhost:8000/api/v1/crypto/portfolio \
-  -H "Authorization: Bearer {token}"
 ```
 
-## Fee Structure
+## How fees work
 
-### How Fees Work
+Pretty simple - 1.5% on buys and sells.
 
-The platform charges a **1.5% fee** on both buy and sell transactions. This is how the platform generates revenue.
+**Buying:** You say "I want to spend ₦100k on BTC", we take ₦1,500 fee, you get ₦98,500 worth of BTC.
 
-#### Buy Transaction
-- User specifies NGN amount to spend
-- Fee is deducted from the NGN amount first
-- Remaining amount is used to purchase crypto
+**Selling:** You sell 0.001 BTC worth ₦67,500, we take ₦1,012.50, you get ₦66,487.50.
 
-**Example:** User wants to spend ₦100,000 on BTC
-```
-Total Amount:     ₦100,000.00
-Fee (1.5%):       ₦1,500.00
-Amount for Crypto: ₦98,500.00
-BTC Received:     0.00145926 BTC (at ₦67.5M/BTC)
-```
+Fees are in the database so they can be changed without touching code.
 
-#### Sell Transaction
-- User specifies crypto amount to sell
-- NGN value is calculated from market rate
-- Fee is deducted from the NGN proceeds
+## CoinGecko
 
-**Example:** User sells 0.001 BTC
-```
-BTC Sold:         0.001 BTC
-Market Value:     ₦67,500.00
-Fee (1.5%):       ₦1,012.50
-NGN Received:     ₦66,487.50
-```
+Prices come from CoinGecko's free API. I cache them for 60 seconds so we don't hammer their servers (and stay within rate limits). If their API goes down, the error handling is decent but not bulletproof.
 
-### Configuration
-Fees are stored in the `fee_settings` table and can be adjusted:
-- `buy_fee`: Fee percentage for purchases
-- `sell_fee`: Fee percentage for sales
-- `minimum_amount`: Minimum transaction amount (₦1,000)
-
-## CoinGecko Integration
-
-### Overview
-The platform uses [CoinGecko's free API](https://www.coingecko.com/en/api) to fetch real-time cryptocurrency prices in NGN.
-
-### Implementation Details
-
-1. **Service Class**: `App\Services\CoinGeckoService`
-2. **Caching**: Prices are cached for 60 seconds to:
-   - Reduce API calls
-   - Stay within rate limits
-   - Improve response times
-3. **Error Handling**: Graceful fallback when API is unavailable
-4. **Rate Limiting**: Respects CoinGecko's free tier limits
-
-### Configuration
-```env
-COINGECKO_BASE_URL=https://api.coingecko.com/api/v3
-COINGECKO_CACHE_TTL=60
-COINGECKO_TIMEOUT=10
-```
-
-### Supported Endpoints Used
-- `GET /simple/price` - Fetch prices for specific coins
-
-## Running Tests
+## Running tests
 
 ```bash
-# Run all tests
 php artisan test
 
-# Run with coverage
-php artisan test --coverage
-
-# Run specific test file
+# or specific file
 php artisan test tests/Feature/TradingTest.php
-
-# Run specific test method
-php artisan test --filter=test_user_can_buy_crypto
 ```
 
-### Test Structure
-- `tests/Feature/AuthenticationTest.php` - Auth flow tests
-- `tests/Feature/WalletTest.php` - Wallet operation tests
-- `tests/Feature/TradingTest.php` - Trading functionality tests
+Tests mock CoinGecko so they don't make real API calls.
 
-### Mocking CoinGecko in Tests
-Tests mock the `CoinGeckoService` to avoid external API calls and ensure consistent test results.
+## Architecture notes
 
-## Design Decisions
+I went with a service layer pattern - keeps the controllers skinny and makes testing easier. The main services are:
 
-### 1. Service Layer Architecture
-**Decision**: Separated business logic into service classes.  
-**Rationale**: Keeps controllers thin, improves testability, and allows reuse of business logic.
+- `WalletService` - handles deposits, withdrawals, balance stuff
+- `TradingService` - executes trades, calculates fees
+- `CoinGeckoService` - fetches and caches prices
 
-### 2. Database Transactions
-**Decision**: All trades are wrapped in database transactions.  
-**Rationale**: Ensures atomicity - either all operations succeed (wallet debit, crypto credit, trade record) or all fail.
+All trades run in database transactions so if something fails mid-trade, everything rolls back.
 
-### 3. Fee Calculation in Service
-**Decision**: Fees are calculated in `TradingService`, not stored as constants.  
-**Rationale**: Allows dynamic fee adjustment without code changes.
+## What I'd add with more time
 
-### 4. Reference Numbers
-**Decision**: Unique references for trades (`TRD-xxx`) and transactions (`WTX-xxx`).  
-**Rationale**: Easy identification and audit trail.
+Honestly there's a lot this is missing for production:
 
-### 5. Price Caching
-**Decision**: 60-second cache for CoinGecko prices.  
-**Rationale**: Balances real-time accuracy with API rate limits.
+- Queue-based trading (right now it's synchronous which can be slow)
+- Proper rate limiting
+- 2FA
+- KYC/verification
+- More coins
+- Price alerts
+- Better error handling
+- Admin dashboard
 
-### 6. Polymorphic Relations
-**Decision**: Wallet transactions use polymorphic `sourceable` relation to trades.  
-**Rationale**: Enables flexible linking to different source types.
+But for a demo/assessment, it covers the core flow.
 
-## Trade-offs & Assumptions
+## Time breakdown
 
-### Trade-offs Made
-
-1. **Synchronous Trading**: Trades execute synchronously rather than using queues.
-   - *Pros*: Simpler implementation, immediate user feedback
-   - *Cons*: Longer response times if CoinGecko is slow
-
-2. **Simple Authentication**: Using Sanctum tokens over OAuth.
-   - *Pros*: Faster implementation, sufficient for API use
-   - *Cons*: Less sophisticated than OAuth for multi-service auth
-
-3. **Manual Deposit/Withdraw**: Simulated rather than actual payment integration.
-   - *Pros*: Allows full testing of trading flow
-   - *Cons*: Not production-ready for real payments
-
-### Assumptions Made
-
-1. **Single Currency**: Platform only supports NGN for fiat
-2. **No Order Book**: Instant execution at market price (no limit orders)
-3. **Trusted User Input**: Basic validation only (production would need more)
-4. **No KYC**: User verification not implemented
-5. **No 2FA**: Single-factor authentication only
-
-### What I Would Add Given More Time
-
-1. **Queue-based Trading**: Async trade processing for reliability
-2. **Rate Limiting**: API rate limiting per user
-3. **Webhook/Push Notifications**: For trade status updates
-4. **Admin Panel**: Fee management, user management
-5. **More Cryptos**: Dynamic support for additional cryptocurrencies
-6. **Price Alerts**: Notify users when prices hit targets
-7. **Comprehensive Logging**: Detailed audit logs
-8. **API Versioning**: More robust versioning strategy
-
-## Time Spent
-
-| Task | Time |
-|------|------|
-| Project Setup & Configuration | 30 min |
-| Database Design & Migrations | 45 min |
-| Models & Relationships | 30 min |
-| Authentication System | 30 min |
-| Wallet Service & Controller | 45 min |
-| CoinGecko Integration | 30 min |
-| Trading Service & Controller | 1 hr |
-| Tests | 45 min |
-| Documentation | 45 min |
-| **Total** | **~6 hours** |
-
-## License
-
-This project is created as part of a technical assessment and is not licensed for production use.
+Roughly 6 hours total:
+- Setup/config: ~30 min
+- Database stuff: ~45 min  
+- Auth: ~30 min
+- Wallet: ~45 min
+- CoinGecko integration: ~30 min
+- Trading logic: ~1 hr
+- Tests: ~45 min
+- Docs: ~45 min
 
 ---
 
-**Author**: Technical Assessment Submission  
-**Date**: 2024
+Built for a technical assessment. Not meant for production use.
