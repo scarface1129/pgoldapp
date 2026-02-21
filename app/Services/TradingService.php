@@ -63,54 +63,54 @@ class TradingService
 
         $rate = $priceData['price_ngn'];
 
-        return DB::transaction(function () use ($user, $symbol, $ngnAmount, $rate, $feeSetting, $priceData) {
-            // Calculate amounts
-            // For buying: user pays ngnAmount, fee is deducted from it, rest goes to crypto
-            $feeAmount = $feeSetting->calculateFee($ngnAmount);
-            $amountAfterFee = $ngnAmount - $feeAmount; // Amount used to buy crypto
-            $cryptoAmount = $amountAfterFee / $rate;
+        // Calculate amounts
+        // For buying: user pays ngnAmount, fee is deducted from it, rest goes to crypto
+        $feeAmount = $feeSetting->calculateFee($ngnAmount);
+        $amountAfterFee = $ngnAmount - $feeAmount; // Amount used to buy crypto
+        $cryptoAmount = $amountAfterFee / $rate;
 
-            // Create the trade record
-            $trade = Trade::create([
-                'user_id' => $user->id,
-                'reference' => Trade::generateReference(),
-                'type' => 'buy',
-                'crypto_symbol' => $symbol,
-                'crypto_amount' => $cryptoAmount,
-                'rate' => $rate,
-                'subtotal' => $amountAfterFee,
-                'fee_percentage' => $feeSetting->percentage,
-                'fee_amount' => $feeAmount,
-                'total_amount' => $ngnAmount, // Total amount debited from wallet
-                'status' => 'pending',
-                'rate_data' => $priceData,
-            ]);
+        // Create the trade record BEFORE transaction so we can track failures
+        $trade = Trade::create([
+            'user_id' => $user->id,
+            'reference' => Trade::generateReference(),
+            'type' => 'buy',
+            'crypto_symbol' => $symbol,
+            'crypto_amount' => $cryptoAmount,
+            'rate' => $rate,
+            'subtotal' => $amountAfterFee,
+            'fee_percentage' => $feeSetting->percentage,
+            'fee_amount' => $feeAmount,
+            'total_amount' => $ngnAmount, // Total amount debited from wallet
+            'status' => 'pending',
+            'rate_data' => $priceData,
+        ]);
 
-            try {
+        try {
+            DB::transaction(function () use ($user, $symbol, $ngnAmount, $cryptoAmount, $trade) {
                 // Debit wallet
                 $this->walletService->debitForTrade($user, $ngnAmount, $trade);
-
                 // Credit crypto holding
                 $cryptoHolding = $user->getOrCreateCryptoHolding($symbol);
                 $cryptoHolding->addBalance($cryptoAmount);
+            });
 
-                // Mark trade as completed
-                $trade->markAsCompleted();
+            // Mark trade as completed AFTER successful transaction
+            $trade->markAsCompleted();
 
-                Log::info("Buy trade completed", [
-                    'user_id' => $user->id,
-                    'trade_ref' => $trade->reference,
-                    'symbol' => $symbol,
-                    'crypto_amount' => $cryptoAmount,
-                    'ngn_amount' => $ngnAmount,
-                ]);
+            Log::info("Buy trade completed", [
+                'user_id' => $user->id,
+                'trade_ref' => $trade->reference,
+                'symbol' => $symbol,
+                'crypto_amount' => $cryptoAmount,
+                'ngn_amount' => $ngnAmount,
+            ]);
 
-                return $trade->fresh();
-            } catch (\Exception $e) {
-                $trade->markAsFailed($e->getMessage());
-                throw $e;
-            }
-        });
+            return $trade->fresh();
+        } catch (\Exception $e) {
+            // Mark as failed OUTSIDE transaction so it persists
+            $trade->markAsFailed($e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -158,52 +158,53 @@ class TradingService
             );
         }
 
-        return DB::transaction(function () use ($user, $symbol, $cryptoAmount, $rate, $subtotal, $feeSetting, $priceData, $cryptoHolding) {
-            // Calculate amounts
-            // For selling: user sells crypto, gets NGN minus fee
-            $feeAmount = $feeSetting->calculateFee($subtotal);
-            $amountAfterFee = $subtotal - $feeAmount; // Amount credited to wallet
+        // Calculate amounts
+        // For selling: user sells crypto, gets NGN minus fee
+        $feeAmount = $feeSetting->calculateFee($subtotal);
+        $amountAfterFee = $subtotal - $feeAmount; // Amount credited to wallet
 
-            // Create the trade record
-            $trade = Trade::create([
-                'user_id' => $user->id,
-                'reference' => Trade::generateReference(),
-                'type' => 'sell',
-                'crypto_symbol' => $symbol,
-                'crypto_amount' => $cryptoAmount,
-                'rate' => $rate,
-                'subtotal' => $subtotal,
-                'fee_percentage' => $feeSetting->percentage,
-                'fee_amount' => $feeAmount,
-                'total_amount' => $amountAfterFee, // Total amount credited to wallet
-                'status' => 'pending',
-                'rate_data' => $priceData,
-            ]);
+        // Create the trade record BEFORE transaction so we can track failures
+        $trade = Trade::create([
+            'user_id' => $user->id,
+            'reference' => Trade::generateReference(),
+            'type' => 'sell',
+            'crypto_symbol' => $symbol,
+            'crypto_amount' => $cryptoAmount,
+            'rate' => $rate,
+            'subtotal' => $subtotal,
+            'fee_percentage' => $feeSetting->percentage,
+            'fee_amount' => $feeAmount,
+            'total_amount' => $amountAfterFee, // Total amount credited to wallet
+            'status' => 'pending',
+            'rate_data' => $priceData,
+        ]);
 
-            try {
+        try {
+            DB::transaction(function () use ($user, $cryptoAmount, $amountAfterFee, $trade, $cryptoHolding) {
                 // Debit crypto holding
                 $cryptoHolding->subtractBalance($cryptoAmount);
 
                 // Credit wallet
                 $this->walletService->creditForTrade($user, $amountAfterFee, $trade);
+            });
 
-                // Mark trade as completed
-                $trade->markAsCompleted();
+            // Mark trade as completed AFTER successful transaction
+            $trade->markAsCompleted();
 
-                Log::info("Sell trade completed", [
-                    'user_id' => $user->id,
-                    'trade_ref' => $trade->reference,
-                    'symbol' => $symbol,
-                    'crypto_amount' => $cryptoAmount,
-                    'ngn_amount' => $amountAfterFee,
-                ]);
+            Log::info("Sell trade completed", [
+                'user_id' => $user->id,
+                'trade_ref' => $trade->reference,
+                'symbol' => $symbol,
+                'crypto_amount' => $cryptoAmount,
+                'ngn_amount' => $amountAfterFee,
+            ]);
 
-                return $trade->fresh();
-            } catch (\Exception $e) {
-                $trade->markAsFailed($e->getMessage());
-                throw $e;
-            }
-        });
+            return $trade->fresh();
+        } catch (\Exception $e) {
+            // Mark as failed OUTSIDE transaction so it persists
+            $trade->markAsFailed($e->getMessage());
+            throw $e;
+        }
     }
 
     /**
